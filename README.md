@@ -1,5 +1,17 @@
 # VmdlRssPatcher
 
+## 제공 도구
+
+이 저장소에는 목적이 다른 두 패처가 함께 있습니다.
+
+| 도구 | 동작 | 문서 |
+|---|---|---|
+| `VmdlRssPatcher` | 기존 v1: HUD와 RSS worldmodel 구성을 함께 적용 | 이 문서 |
+| `VmdlHudGraphBatchPatcher` | 설계 지침 엄격 버전: `hudmodel`만 변경, staging/backup/verify/apply/restore 및 JSON/CSV 보고서 지원 | [README_STRICT.md](README_STRICT.md) |
+
+기존 `v1.0.0` Release와 소스는 유지됩니다. HUD-only 안전 배치 작업에는
+`VmdlHudGraphBatchPatcher`의 최신 Release를 사용하세요.
+
 CS2 캐릭터 모델의 컴파일된 `*.vmdl_c` 파일에서 HUD 및 월드 애니메이션 그래프 참조를 RSS 경로로 변경하는 Windows 명령줄 도구입니다.
 
 ## 변경되는 경로

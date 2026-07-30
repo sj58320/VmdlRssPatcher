@@ -1,0 +1,3 @@
+# 에셋 루트 기준 인간 캐릭터 모델 상대 경로를 한 줄에 하나씩 작성합니다.
+characters/models/asmodeus/firefly/firefly.vmdl_c
+characters/models/rss/hoshino/hoshino.vmdl_c
