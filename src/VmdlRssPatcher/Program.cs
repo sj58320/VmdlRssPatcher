@@ -24,6 +24,16 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = new UTF8Encoding(false);
+        PrintUsage();
+
+        if (args.Any(a => a.Equals("--help", StringComparison.OrdinalIgnoreCase)
+            || a.Equals("-h", StringComparison.OrdinalIgnoreCase)
+            || a.Equals("/?", StringComparison.OrdinalIgnoreCase)))
+        {
+            PauseIfInteractive();
+            return 0;
+        }
+
         var dryRun = args.Any(a => a.Equals("--dry-run", StringComparison.OrdinalIgnoreCase));
         var pathArgument = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
         var root = Path.GetFullPath(pathArgument ?? AppContext.BaseDirectory);
@@ -132,6 +142,25 @@ internal static class Program
         return previewErrors + applyErrors > 0 ? 1 : 0;
     }
 
+    private static void PrintUsage()
+    {
+        Console.WriteLine("사용 방법");
+        Console.WriteLine("=========");
+        Console.WriteLine("1. 패치할 에셋 폴더에 VmdlRssPatcher.exe를 넣습니다.");
+        Console.WriteLine("2. EXE를 실행하면 해당 폴더와 모든 하위 폴더의 *.vmdl_c를 찾습니다.");
+        Console.WriteLine("3. 변경 예정 내용을 확인한 뒤, 적용하려면 y를 입력합니다.");
+        Console.WriteLine();
+        Console.WriteLine("명령줄 사용법");
+        Console.WriteLine("  VmdlRssPatcher.exe");
+        Console.WriteLine("  VmdlRssPatcher.exe \"D:\\패치할 에셋 폴더\"");
+        Console.WriteLine("  VmdlRssPatcher.exe --dry-run \"D:\\확인할 에셋 폴더\"");
+        Console.WriteLine("  VmdlRssPatcher.exe --help");
+        Console.WriteLine();
+        Console.WriteLine("옵션");
+        Console.WriteLine("  --dry-run  파일을 변경하지 않고 변경 예정 내용만 확인");
+        Console.WriteLine("  --help     사용 방법만 표시");
+        Console.WriteLine();
+    }
     private static PatchResult PatchFile(string file, bool dryRun)
     {
         var original = File.ReadAllBytes(file);
