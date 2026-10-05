@@ -14,6 +14,28 @@ CS2 캐릭터 모델의 컴파일된 `*.vmdl_c` 파일에서 HUD 및 월드 애�
 
 빈 식별자(`m_sIdentifier = ""`)는 `DefaultAnimGraph2`를 의미합니다. 빈 엔트리라고 해서 무조건 worldmodel인 것은 아니므로, 이 프로그램은 기존 그래프 경로가 실제 `worldmodel.vnmgraph`로 끝나는 경우에만 RSS worldmodel로 변경합니다.
 
+
+## CS2 기본 그래프로 복원 (`--stock`)
+
+RSS 커스텀 무기를 사용하지 않는 에셋용으로 HUD 및 월드 그래프 참조를 기본 경로로 복원할 수 있습니다.
+
+```powershell
+VmdlRssPatcher.exe --stock --dry-run "D:\KZ_assets"
+VmdlRssPatcher.exe --stock "D:\KZ_assets"
+```
+
+- HUD: `animation/graphs/viewmodel/viewmodel.vnmgraph` (ID `C5111C601E968C98`)
+- 월드: `animation/graphs/worldmodel/worldmodel.vnmgraph` (ID `87CE5FF43C25BA7D`)
+- `--stock`을 생략하면 기존과 동일하게 RSS 경로를 적용합니다.
+- 기본 그래프 파일은 설치된 CS2 VPK에서, ID는 RSS 패치 전 모델 백업에서 확인했습니다.
+- DATA와 RERL을 함께 수정하며 `uimodel`과 나머지 모델 블록을 보존합니다.
+- RSS 또는 기본 경로 이외의 대상 그래프를 가진 모델은 자동 복원하지 않습니다.
+- 기존 엔트리가 없는 구형 모델에 새 그래프를 추가하거나 AnimGraph1을 변환하지 않습니다.
+- 복원 직전 파일은 `.stockpatch.bak`으로 보관하며 기존 `.rsspatch.bak`은 유지합니다.
+- 이 모드는 원본 파일 전체의 복구가 아닌 두 그래프 참조의 전환입니다.
+- 커스텀 무기 파일 삭제, VPK 패키징, 워크숍 업로드는 수행하지 않습니다.
+- 파일 구조 검증과 실제 게임에서의 캐릭터/팔/댄스 동작 검증은 별개입니다.
+
 ## 다운로드
 
 저장소의 **Releases**에서 `VmdlRssPatcher.exe` 또는 ZIP 파일을 다운로드합니다.

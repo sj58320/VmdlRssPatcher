@@ -8,10 +8,15 @@ using ValveResourceFormat.ResourceTypes;
 
 internal static class Program
 {
-    private const string ViewTarget = "animation/rss/graphs/viewmodel.vnmgraph";
-    private const string WorldTarget = "animation/rss/graphs/worldmodel.vnmgraph";
-    private const ulong ViewTargetId = 0xD6AA21250E1DE440;
-    private const ulong WorldTargetId = 0x00E023B440DAE5CD;
+    private const string RssView = "animation/rss/graphs/viewmodel.vnmgraph";
+    private const string RssWorld = "animation/rss/graphs/worldmodel.vnmgraph";
+    private static string ViewTarget = RssView;
+    private static string WorldTarget = RssWorld;
+    private static ulong ViewTargetId = 0xD6AA21250E1DE440;
+    private static ulong WorldTargetId = 0x00E023B440DAE5CD;
+
+    private static bool StockMode;
+    private static string BackupSuffix => StockMode ? ".stockpatch.bak" : ".rsspatch.bak";
 
     private enum ResultKind { Changed, AlreadyApplied, Skipped, Error, DryRun }
     private sealed record PatchResult(ResultKind Kind, string[] Lines);
@@ -34,11 +39,29 @@ internal static class Program
             return 0;
         }
 
+        var unknownOption = args.FirstOrDefault(a => a.StartsWith("--", StringComparison.Ordinal)
+            && !a.Equals("--stock", StringComparison.OrdinalIgnoreCase)
+            && !a.Equals("--dry-run", StringComparison.OrdinalIgnoreCase));
+        if (unknownOption != null)
+        {
+            Console.Error.WriteLine($"[오류] 알 수 없는 옵션: {unknownOption}");
+            return 2;
+        }
+        StockMode = args.Any(a => a.Equals("--stock", StringComparison.OrdinalIgnoreCase));
+        if (StockMode)
+        {
+            ViewTarget = "animation/graphs/viewmodel/viewmodel.vnmgraph";
+            WorldTarget = "animation/graphs/worldmodel/worldmodel.vnmgraph";
+            // IDs confirmed from the pre-RSS ctm_sas.vmdl_c.rsspatch.bak.
+            ViewTargetId = 0xC5111C601E968C98;
+            WorldTargetId = 0x87CE5FF43C25BA7D;
+        }
+
         var dryRun = args.Any(a => a.Equals("--dry-run", StringComparison.OrdinalIgnoreCase));
         var pathArgument = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
         var root = Path.GetFullPath(pathArgument ?? AppContext.BaseDirectory);
 
-        Console.WriteLine("VMDL_C RSS 그래프 패처");
+        Console.WriteLine($"VMDL_C 그래프 패처 — {(StockMode ? "CS2 기본 복원" : "RSS 적용")}");
         Console.WriteLine("=======================");
         Console.WriteLine($"검색 폴더 : {root}");
         Console.WriteLine($"HUD 목표  : {ViewTarget}");
@@ -106,7 +129,7 @@ internal static class Program
             return previewErrors > 0 ? 1 : 0;
         }
 
-        Console.Write($"위 {targets.Length}개 모델을 RSS viewmodel/worldmodel 경로로 변경하시겠습니까? (y/n): ");
+        Console.Write($"위 {targets.Length}개 모델을 {(StockMode ? "CS2 기본" : "RSS")} viewmodel/worldmodel 경로로 변경하시겠습니까? (y/n): ");
         var answer = Console.ReadLine()?.Trim();
         Console.WriteLine();
         if (!string.Equals(answer, "y", StringComparison.OrdinalIgnoreCase))
@@ -137,7 +160,7 @@ internal static class Program
         Console.WriteLine($"건너뜀       : {skipped}");
         Console.WriteLine($"오류         : {previewErrors + applyErrors}");
         Console.WriteLine();
-        Console.WriteLine("변경된 원본에는 최초 1회만 .rsspatch.bak 백업이 생성됩니다.");
+        Console.WriteLine($"변경된 원본에는 최초 1회만 {BackupSuffix} 백업이 생성됩니다.");
         PauseIfInteractive();
         return previewErrors + applyErrors > 0 ? 1 : 0;
     }
@@ -157,6 +180,7 @@ internal static class Program
         Console.WriteLine("  VmdlRssPatcher.exe --help");
         Console.WriteLine();
         Console.WriteLine("옵션");
+        Console.WriteLine("  --stock    RSS 그래프를 CS2 기본 그래프로 복원 (생략하면 RSS 적용)");
         Console.WriteLine("  --dry-run  파일을 변경하지 않고 변경 예정 내용만 확인");
         Console.WriteLine("  --help     사용 방법만 표시");
         Console.WriteLine();
@@ -167,6 +191,9 @@ internal static class Program
         using var input = new MemoryStream(original, writable: false);
         using var resource = ReadResource(file, input);
         var state = ReadGraphState(resource);
+        if (StockMode && (state.ViewPaths.Any(p => !PathEquals(p, RssView) && !PathEquals(p, ViewTarget))
+            || state.WorldPaths.Any(p => !PathEquals(p, RssWorld) && !PathEquals(p, WorldTarget))))
+            return new(ResultKind.Skipped, ["RSS/CS2 기본 이외의 그래프가 있어 자동 복원하지 않음"]);
 
         if (state.ViewRefs.Count == 0 && state.WorldRefs.Count == 0)
             return new(ResultKind.Skipped, ["m_animGraph2Refs에 hudmodel, worldmodel 또는 빈 기본 엔트리가 없음"]);
@@ -202,7 +229,7 @@ internal static class Program
         var modified = RebuildWithPatchedDataBlocks(original, output.ToArray());
         ValidateSerialized(file, modified, state.ViewRefs.Count, state.WorldRefs.Count);
 
-        var backup = file + ".rsspatch.bak";
+        var backup = file + BackupSuffix;
         if (!File.Exists(backup))
         {
             File.Copy(file, backup, overwrite: false);
@@ -210,7 +237,7 @@ internal static class Program
         }
         else lines.Add($"기존 백업 유지: {Path.GetFileName(backup)}");
 
-        var temporary = file + ".rsspatch.tmp";
+        var temporary = file + (StockMode ? ".stockpatch.tmp" : ".rsspatch.tmp");
         try
         {
             File.WriteAllBytes(temporary, modified);
